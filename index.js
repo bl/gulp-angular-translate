@@ -5,10 +5,28 @@ var path = require('path');
 
 function cacheTranslations(options) {
   return es.map(function(file, callback) {
+    var language;
+    if (options.language) {
+      language = options.langauge;
+    } else {
+      var matchPrefix, matchLocale;
+      var expression = /^([a-zA-Z0-9]*?)-?([a-z]{2}(?:[_|-][A-Z]{2})?)\.json$/;
+      var match = expression.exec(file.path.split(path.sep).pop());
+
+      matchPrefix = match[1];
+      matchLocale = match[2];
+
+      language = matchLocale;
+      var supportedPrefixes = options.prefixes;
+      if (supportedPrefixes && matchPrefix && supportedPrefixes.includes(matchPrefix)) {
+        language = `${matchPrefix}-${language}`
+      }
+    }
+
     file.contents = new Buffer(gutil.template('$translateProvider.translations("<%= language %>", <%= contents %>);\n', {
       contents: file.contents,
       file: file,
-      language: options.language || file.path.split(path.sep).pop().match(/^(?:[\w]{3,}-)?([a-z]{2}[_|-]?(?:[A-Z]{2})?)\.json$/i).pop()
+      language: language
     }));
     callback(null, file);
   });
